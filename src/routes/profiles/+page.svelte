@@ -3,13 +3,34 @@
 
   /** @type {import('./$types').PageData} */
   export let data;
-  console.log("hello", data.names);
 
   /** @type {import('./$types').ActionData} */
   export let form;
+
+  let names = data.names;
+
+  function handleEditEmail(id) {
+    names = names.map(name => name.id === id ? { ...name, isEditing: true } : name);
+  }
+
+  async function handleUpdateEmail(id) {
+    const name = names.find(name => name.id === id);
+    const response = await fetch(`?/update`, {
+      method: 'POST',
+      body: new URLSearchParams({
+        id: name.id,
+        email: name.email,
+      }),
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      names = names.map(name => name.id === id ? { ...name, isEditing: false } : name);
+    }
+  }
 </script>
 
-<Table names={data.names} />
+<Table {names} on:editEmail={event => handleEditEmail(event.detail)} on:updateEmail={event => handleUpdateEmail(event.detail)} />
 
 <div
   class="mt-10 pt-10 w-full max-w-xl p-12 mx-auto rounded-lg shadow-xl dark:bg-white/10 bg-white/30 ring-1 ring-gray-900/5 backdrop-blur-lg"
@@ -19,7 +40,7 @@
       <div class="w-full md:w-1/3 px-3 mb-6 md:mb-0">
         <label
           class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-          for="grid-city"
+          for="grid-name"
         >
           Name
         </label>
@@ -34,7 +55,7 @@
       <div class="w-full md:w-1/3 px-3 mb-6 md:mb-0">
         <label
           class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
-          for="grid-city"
+          for="grid-email"
         >
           Email
         </label>
@@ -46,11 +67,6 @@
           name="email"
         />
       </div>
-      <!-- <div class="w-full md:w-1/3 px-3 mb-6 md:mb-0">
-            <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-state">
-              Email
-            </label>
-          </div> -->
       <button
         type="submit"
         class="bg-yellow-500 hover:bg-blue-700 text-white font-bold mt-5 ml-2 px-2 rounded "
@@ -59,9 +75,8 @@
       </button>
     </div>
   </form>
+
   {#if form?.success}
-    <!-- this message is ephemeral; it exists because the page was rendered in
-		   response to a form submission. it will vanish if the user reloads -->
-    <p class="pt-2">Added new Applicant!</p>
+    <p class="pt-2">Operation Successful!</p>
   {/if}
 </div>
