@@ -1,70 +1,71 @@
-
-import  NeucronSDK  from 'neucron-sdk';
-
-
-
+import NeucronSDK from "neucron-sdk";
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-    login: async ({ request }) => {
-        const data = await request.formData();
-        const neucron = new NeucronSDK();
-        const authModule = neucron.authentication;
-        const walletModule = neucron.wallet;
+  login: async ({ request }) => {
+    const data = await request.formData();
 
-        const loginResponse = await authModule.login({
-           email : data.get ('email'),
-           password : data.get('password'),
-        });
-        console.log(loginResponse);
-        const DefaultWalletBalance = await walletModule.getWalletBalance({});
-        console.log(DefaultWalletBalance);
+    const neucron = new NeucronSDK();
 
-        // const addresses = await walletModule.getAddressesByWalletId({});
-        // console.log(addresses);
+    const authModule = neucron.authentication;
+    const walletModule = neucron.wallet;
 
+    const loginResponse = await authModule.login({
+      email: data.get("email"),
+      password: data.get("password"),
+    });
+    console.log(loginResponse);
 
-        // const walletHistory = await walletModule.getWalletHistory({});
-        // console.log(walletHistory);
+    const DefaultWalletBalance = await walletModule.getWalletBalance({});
+    console.log(DefaultWalletBalance);
 
-        return { success: true , balance: DefaultWalletBalance.data.balance.summary};
-    },
-    pay: async ({ request }) => {
-        const data = await request.formData();
-        const neucron = new NeucronSDK();
-        const authModule = neucron.authentication;
-        const walletModule = neucron.wallet;
+    const addresses = await walletModule.getAddressesByWalletId({});
+    console.log(addresses);
 
-        const loginResponse = await authModule.login({
-           email : data.get ('email'),
-           password : data.get('password'),
-        });
-        console.log(loginResponse);
-        const DefaultWalletBalance = await walletModule.getWalletBalance({});
-        console.log(DefaultWalletBalance);
+    return { success: true, balance: DefaultWalletBalance.data.balance.summary };
+  },
 
-        // const addresses = await walletModule.getAddressesByWalletId({});
-        // console.log(addresses);
+  pay: async ({ request }) => {
+    try {
+      const data = await request.formData();
 
-        const options ={
-            outputs: [
-                {
-                    address: data.get('paymail'),
-                    note : 'guru pay',
-                    amount: data.get('amount'),
-                },
-            ],  
-        }
+      const neucron = new NeucronSDK();
 
-        const payResponse = await neucron.pay.txSpend(options);
-        console.log(payResponse);
+      const authModule = neucron.authentication;
+      const walletModule = neucron.wallet;
 
-        // const walletHistory = await walletModule.getWalletHistory({});
-        // console.log(walletHistory);
+      const loginResponse = await authModule.login({
+        email: data.get("email"),
+        password: data.get("password"),
+      });
+      console.log(loginResponse);
 
-        return { success: true , payResponse: payResponse};
+      const paymail = data.get("paymail");
+      const amount = parseFloat(data.get("amount"));
+
+      if (!paymail || !amount || isNaN(amount) || amount <= 0) {
+        throw new Error("Invalid paymail or amount");
+      }
+
+      const options = {
+        outputs: [
+          {
+            address: paymail,
+            note: "sowham_test_transaction",
+            amount: amount,
+          },
+        ],
+      };
+
+      console.log("Payment options:", options);
+
+      const payResponse = await neucron.pay.txSpend(options);
+      console.log(payResponse);
+
+      return { success: true, payment: `https://whatsonchain.com/tx/${payResponse.data.txid}` };
+    } catch (error) {
+      console.error("Payment failed:", error.message);
+      return { success: false, error: error.message };
     }
+  },
 };
-
-
-

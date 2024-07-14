@@ -1,40 +1,52 @@
-// import { Root} from "../../lib/contracts/root"
-// import { DefaultProvider, bsv} from 'scrypt-ts';
-// import { NeucronSigner } from 'neucron-signer';
+import { Root } from "../../lib/contracts/root";
+import { DefaultProvider, bsv } from "scrypt-ts";
+import { NeucronSigner } from "neucron-signer";
+import artifact from "../../../artifacts/root.json"
 
-// const provider = new DefaultProvider({ network: bsv.Networks.mainnet });
-// const signer = new NeucronSigner(provider);
+const provider = new DefaultProvider({ network: bsv.Networks.mainnet });
+const signer = new NeucronSigner(provider);
+await signer.login("sales@timechainlabs.io", "string");
+await Root.loadArtifact(artifact);
+let instance: any;
 
-// let instance;
-// await signer.login('sales@timechainlabs.io','string');
-// await Root.loadArtifact();
-// /** @type {import('./$types').Actions} */
-// export const actions = {
+export const actions = {
+  deploy: async ({ request }) => {
+    const data = await request.formData();
 
-//     deploy: async ({ request }) => {
-      
-//         const data = await request.formData();
+    const square = BigInt(Number(data.get("square")));
+    instance = new Root(square);
+    await instance.connect(signer);
 
-//         const square = BigInt(data.get('square'));
-//         instance = new Root(square);
-//         await instance.connect(signer);
+    try {
+      const deployTx = await instance.deploy(Number(data.get("bounty")));
+      console.log(
+        "smart lock deployed : https://whatsonchain.com/tx/" + deployTx.id
+      );
 
-//         const deployTx = await instance.deploy(data.get('bounty'));
-//         console.log(
-//             'smart lock deployed : https://whatsonchain.com/tx/' + deployTx.id
-//         );
+      return { deployed: true, txid: deployTx.id };
+    } catch (error:any) {
+      return { deployed: false, txid: error.message };
+    }
+  },
 
-//         return { success: true, tx: deployTx.id };
-//     },
-//     unlock: async ({ request }) => {
-        
-//         const data = await request.formData();
-//         const root = data.get('root');
-//         const { tx: callTx } = await instance.methods.unlock(root);
-//         console.log(
-//             'smart lock unlocked : https://whatsonchain.com/tx/' + callTx.id
-//         );
+  unlock: async ({ request }) => {
+    // Retrieve data from the form
+    const data = await request.formData();
+    const input1 = BigInt(Number(data.get("input1")));
+    const input2 = BigInt(Number(data.get("input2")));
 
-//         return { success: true, tx: callTx.id };
-//     }
-// };
+    await instance.connect(signer);
+    // Call the unlock method
+    try {
+      const { tx: callTx } = await instance.methods.unlock(input1, input2);
+      console.log(
+        "contract unlocked successfully : https://whatsonchain.com/tx/" +
+          callTx.id
+      );
+      return { success: true, txid: callTx.id };
+    } catch (error: any) {
+      console.log(error.message);
+      return { success: false, txid: error.message };
+    }
+  },
+};
